@@ -6,7 +6,7 @@
     <title>Grupo Estrella Roja - Gestión de Tickets de Combustible</title>
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" xintegrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" xintegrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" xintegrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 
     <style>
@@ -16,21 +16,28 @@
             --er-blue: #003366; /* Azul Estrella Roja */
             --er-light-blue: #007bff; /* Azul más claro para acentos */
             --er-gray: #f8f9fa; /* Gris claro para fondos */
-            --er-dark-gray: #6c757d; /* Gris oscuro para texto */
+            --er-dark-gray: #495057; /* Gris oscuro para texto */
+            --er-accent-light: #f0f8ff; /* Azul muy claro para fondos sutiles */
         }
 
         body {
             font-family: 'Inter', sans-serif;
-            background-color: var(--er-gray);
+            /* Fondo con gradiente lineal para un diseño más moderno */
+            background: linear-gradient(135deg, var(--er-blue) 0%, var(--er-light-blue) 50%, var(--er-red) 100%);
+            background-size: cover;
+            background-attachment: fixed; /* Asegura que el fondo no se mueva al hacer scroll */
             color: var(--er-dark-gray);
+            line-height: 1.6;
         }
 
         .navbar {
             background-color: var(--er-blue);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
         }
 
         .navbar-brand, .nav-link {
             color: white !important;
+            font-weight: 600;
         }
 
         .btn-primary-er {
@@ -39,13 +46,14 @@
             color: white;
             border-radius: 0.5rem;
             transition: all 0.3s ease;
+            font-weight: 600;
         }
 
         .btn-primary-er:hover {
             background-color: #c70024; /* Tono más oscuro de rojo */
             border-color: #c70024;
             transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
         }
 
         .btn-outline-er {
@@ -53,29 +61,39 @@
             color: var(--er-red);
             border-radius: 0.5rem;
             transition: all 0.3s ease;
+            font-weight: 600;
         }
 
         .btn-outline-er:hover {
             background-color: var(--er-red);
             color: white;
             transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
         }
 
         .card {
-            border-radius: 0.75rem;
-            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
+            border-radius: 1rem; /* Más redondeado */
+            box-shadow: 0 0.75rem 1.5rem rgba(0, 0, 0, 0.15); /* Sombra más pronunciada */
             border: none;
+            background-color: white;
         }
 
         .form-control, .form-select {
             border-radius: 0.5rem;
             border: 1px solid #ced4da;
+            padding: 0.75rem 1rem; /* Más padding para mejor tacto */
         }
 
         .form-control:focus, .form-select:focus {
             border-color: var(--er-light-blue);
             box-shadow: 0 0 0 0.25rem rgba(0, 123, 255, 0.25);
+        }
+
+        .input-group-text {
+            background-color: var(--er-blue);
+            color: white;
+            border-color: var(--er-blue);
+            border-radius: 0.5rem 0 0 0.5rem;
         }
 
         .modal-content {
@@ -87,6 +105,7 @@
             color: white;
             border-top-left-radius: 1rem;
             border-top-right-radius: 1rem;
+            padding: 1.5rem;
         }
 
         .modal-footer {
@@ -118,20 +137,30 @@
             top: 1rem;
             right: 1rem;
             z-index: 1060; /* Por encima del overlay */
-            min-width: 250px;
+            min-width: 280px; /* Ancho mínimo para mejor lectura */
             text-align: center;
-            border-radius: 0.5rem;
+            border-radius: 0.75rem;
             box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
             display: none; /* Oculto por defecto */
+            animation: fadeInOut 5s forwards; /* Animación de fade */
+        }
+
+        @keyframes fadeInOut {
+            0% { opacity: 0; transform: translateY(-20px); }
+            10% { opacity: 1; transform: translateY(0); }
+            90% { opacity: 1; transform: translateY(0); }
+            100% { opacity: 0; transform: translateY(-20px); }
         }
 
         .ticket-card {
-            transition: transform 0.2s ease-in-out;
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+            background-color: var(--er-accent-light); /* Fondo sutil para tarjetas */
+            border: 1px solid rgba(0, 51, 102, 0.1); /* Borde sutil azul */
         }
 
         .ticket-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 0.75rem 1.5rem rgba(0, 0, 0, 0.15);
+            transform: translateY(-8px); /* Más elevación al pasar el mouse */
+            box-shadow: 0 1rem 2rem rgba(0, 0, 0, 0.2); /* Sombra más intensa */
         }
 
         .chart-container {
@@ -163,46 +192,62 @@
         <div class="row justify-content-center">
             <div class="col-md-6 col-lg-5">
                 <div class="card p-4">
-                    <h2 class="card-title text-center mb-4" style="color: var(--er-blue);">Grupo Estrella Roja</h2>
-                    <p class="text-center text-muted">Gestión de Tickets de Combustible</p>
+                    <h2 class="card-title text-center mb-4" style="color: var(--er-blue);">
+                        <i class="fas fa-gas-pump me-2"></i>Grupo Estrella Roja
+                    </h2>
+                    <p class="text-center text-muted mb-4">Gestión de Tickets de Combustible</p>
 
                     <form id="loginForm" class="mb-3">
-                        <h4 class="text-center mb-3" style="color: var(--er-red);">Iniciar Sesión</h4>
-                        <div class="mb-3">
-                            <label for="loginEmail" class="form-label">Correo Electrónico</label>
-                            <input type="email" class="form-control" id="loginEmail" placeholder="ejemplo@estrellaroja.com" required>
+                        <h4 class="text-center mb-4" style="color: var(--er-red);">Iniciar Sesión</h4>
+                        <div class="input-group mb-3">
+                            <span class="input-group-text"><i class="fas fa-envelope"></i></span>
+                            <input type="email" class="form-control" id="loginEmail" placeholder="Correo Electrónico" required>
                         </div>
-                        <div class="mb-3">
-                            <label for="loginPassword" class="form-label">Contraseña</label>
-                            <input type="password" class="form-control" id="loginPassword" placeholder="********" required>
+                        <div class="input-group mb-3">
+                            <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                            <input type="password" class="form-control" id="loginPassword" placeholder="Contraseña" required>
                         </div>
-                        <button type="submit" class="btn btn-primary-er w-100 mb-2">Entrar</button>
-                        <button type="button" class="btn btn-link w-100 text-decoration-none" onclick="showRegisterForm()">¿No tienes cuenta? Regístrate</button>
-                        <button type="button" class="btn btn-link w-100 text-decoration-none" onclick="showForgotPasswordForm()">¿Olvidaste tu contraseña?</button>
+                        <button type="submit" class="btn btn-primary-er w-100 mb-3">
+                            <i class="fas fa-sign-in-alt me-2"></i>Entrar
+                        </button>
+                        <button type="button" class="btn btn-link w-100 text-decoration-none" onclick="showRegisterForm()">
+                            <i class="fas fa-user-plus me-2"></i>¿No tienes cuenta? Regístrate
+                        </button>
+                        <button type="button" class="btn btn-link w-100 text-decoration-none" onclick="showForgotPasswordForm()">
+                            <i class="fas fa-question-circle me-2"></i>¿Olvidaste tu contraseña?
+                        </button>
                     </form>
 
                     <form id="registerForm" class="mb-3 d-none">
-                        <h4 class="text-center mb-3" style="color: var(--er-red);">Registrarse</h4>
-                        <div class="mb-3">
-                            <label for="registerEmail" class="form-label">Correo Electrónico</label>
-                            <input type="email" class="form-control" id="registerEmail" placeholder="ejemplo@estrellaroja.com" required>
+                        <h4 class="text-center mb-4" style="color: var(--er-red);">Registrarse</h4>
+                        <div class="input-group mb-3">
+                            <span class="input-group-text"><i class="fas fa-envelope"></i></span>
+                            <input type="email" class="form-control" id="registerEmail" placeholder="Correo Electrónico" required>
                         </div>
-                        <div class="mb-3">
-                            <label for="registerPassword" class="form-label">Contraseña</label>
+                        <div class="input-group mb-3">
+                            <span class="input-group-text"><i class="fas fa-lock"></i></span>
                             <input type="password" class="form-control" id="registerPassword" placeholder="Mínimo 6 caracteres" required>
                         </div>
-                        <button type="submit" class="btn btn-primary-er w-100 mb-2">Registrar</button>
-                        <button type="button" class="btn btn-link w-100 text-decoration-none" onclick="showLoginForm()">Volver al Login</button>
+                        <button type="submit" class="btn btn-primary-er w-100 mb-3">
+                            <i class="fas fa-user-plus me-2"></i>Registrar
+                        </button>
+                        <button type="button" class="btn btn-link w-100 text-decoration-none" onclick="showLoginForm()">
+                            <i class="fas fa-arrow-alt-circle-left me-2"></i>Volver al Login
+                        </button>
                     </form>
 
                     <form id="forgotPasswordForm" class="mb-3 d-none">
-                        <h4 class="text-center mb-3" style="color: var(--er-red);">Recuperar Contraseña</h4>
-                        <div class="mb-3">
-                            <label for="forgotEmail" class="form-label">Correo Electrónico</label>
-                            <input type="email" class="form-control" id="forgotEmail" placeholder="ejemplo@estrellaroja.com" required>
+                        <h4 class="text-center mb-4" style="color: var(--er-red);">Recuperar Contraseña</h4>
+                        <div class="input-group mb-3">
+                            <span class="input-group-text"><i class="fas fa-envelope"></i></span>
+                            <input type="email" class="form-control" id="forgotEmail" placeholder="Correo Electrónico" required>
                         </div>
-                        <button type="submit" class="btn btn-primary-er w-100 mb-2">Enviar Enlace de Recuperación</button>
-                        <button type="button" class="btn btn-link w-100 text-decoration-none" onclick="showLoginForm()">Volver al Login</button>
+                        <button type="submit" class="btn btn-primary-er w-100 mb-3">
+                            <i class="fas fa-paper-plane me-2"></i>Enviar Enlace de Recuperación
+                        </button>
+                        <button type="button" class="btn btn-link w-100 text-decoration-none" onclick="showLoginForm()">
+                            <i class="fas fa-arrow-alt-circle-left me-2"></i>Volver al Login
+                        </button>
                     </form>
                 </div>
             </div>
@@ -237,7 +282,9 @@
             <div class="row">
                 <div class="col-lg-5 mb-4">
                     <div class="card p-4">
-                        <h4 class="card-title text-center mb-4" style="color: var(--er-blue);">Crear Nuevo Ticket de Combustible</h4>
+                        <h4 class="card-title text-center mb-4" style="color: var(--er-blue);">
+                            <i class="fas fa-ticket-alt me-2"></i>Crear Nuevo Ticket de Combustible
+                        </h4>
                         <form id="createTicketForm">
                             <div class="mb-3">
                                 <label for="ticketTitle" class="form-label">Título del Pedido</label>
@@ -301,7 +348,9 @@
 
                 <div class="col-lg-7">
                     <div class="card p-4 mb-4">
-                        <h4 class="card-title text-center mb-4" style="color: var(--er-blue);">Estadísticas de Tickets por Prioridad</h4>
+                        <h4 class="card-title text-center mb-4" style="color: var(--er-blue);">
+                            <i class="fas fa-chart-bar me-2"></i>Estadísticas de Tickets por Prioridad
+                        </h4>
                         <div class="chart-container">
                             <canvas id="priorityChart"></canvas>
                         </div>
@@ -314,7 +363,9 @@
                     </div>
 
                     <div class="card p-4">
-                        <h4 class="card-title text-center mb-4" style="color: var(--er-blue);">Tickets Activos</h4>
+                        <h4 class="card-title text-center mb-4" style="color: var(--er-blue);">
+                            <i class="fas fa-list-alt me-2"></i>Tickets Activos
+                        </h4>
                         <div id="ticketsList" class="row g-3">
                             <p class="text-center text-muted" id="noTicketsMessage">No hay tickets activos. ¡Crea uno!</p>
                         </div>
