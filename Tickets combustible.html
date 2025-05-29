@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grupo Estrella Roja - Gestión de Tickets de Combustible</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" xintegrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" xintegrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+
+    <style>
+        /* Estilos personalizados para Grupo Estrella Roja */
+        :root {
+            --er-red: #E4002B; /* Rojo Estrella Roja */
+            --er-blue: #003366; /* Azul Estrella Roja */
+            --er-light-blue: #007bff; /* Azul más claro para acentos */
+            --er-gray: #f8f9fa; /* Gris claro para fondos */
+            --er-dark-gray: #6c757d; /* Gris oscuro para texto */
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--er-gray);
+            color: var(--er-dark-gray);
+        }
+
+        .navbar {
+            background-color: var(--er-blue);
+        }
+
+        .navbar-brand, .nav-link {
+            color: white !important;
+        }
+
+        .btn-primary-er {
+            background-color: var(--er-red);
+            border-color: var(--er-red);
+            color: white;
+            border-radius: 0.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary-er:hover {
+            background-color: #c70024; /* Tono más oscuro de rojo */
+            border-color: #c70024;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn-outline-er {
+            border-color: var(--er-red);
+            color: var(--er-red);
+            border-radius: 0.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .btn-outline-er:hover {
+            background-color: var(--er-red);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .card {
+            border-radius: 0.75rem;
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
+            border: none;
+        }
+
+        .form-control, .form-select {
+            border-radius: 0.5rem;
+            border: 1px solid #ced4da;
+        }
+
+        .form-control:focus, .form-select:focus {
+            border-color: var(--er-light-blue);
+            box-shadow: 0 0 0 0.25rem rgba(0, 123, 255, 0.25);
+        }
+
+        .modal-content {
+            border-radius: 1rem;
+        }
+
+        .modal-header {
+            background-color: var(--er-blue);
+            color: white;
+            border-top-left-radius: 1rem;
+            border-top-right-radius: 1rem;
+        }
+
+        .modal-footer {
+            border-bottom-left-radius: 1rem;
+            border-bottom-right-radius: 1rem;
+        }
+
+        /* Estilos para el spinner de carga */
+        #loadingOverlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1050; /* Por encima de los modales de Bootstrap */
+            display: none; /* Oculto por defecto */
+        }
+
+        .spinner-border {
+            color: var(--er-red);
+        }
+
+        .alert-message {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 1060; /* Por encima del overlay */
+            min-width: 250px;
+            text-align: center;
+            border-radius: 0.5rem;
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
+            display: none; /* Oculto por defecto */
+        }
+
+        .ticket-card {
+            transition: transform 0.2s ease-in-out;
+        }
+
+        .ticket-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 0.75rem 1.5rem rgba(0, 0, 0, 0.15);
+        }
+
+        .chart-container {
+            position: relative;
+            height: 40vh; /* Altura responsiva para el gráfico */
+            width: 100%;
+        }
+
+        @media (max-width: 768px) {
+            .chart-container {
+                height: 50vh;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="loadingOverlay">
+        <div class="spinner-border" role="status">
+            <span class="visually-hidden">Cargando...</span>
+        </div>
+    </div>
+
+    <div id="alertMessage" class="alert alert-dismissible fade show alert-message" role="alert">
+        <span id="alertText"></span>
+        <button type="button" class="btn-close" onclick="hideAlert()" aria-label="Close"></button>
+    </div>
+
+    <div id="authSection" class="container mt-5">
+        <div class="row justify-content-center">
+            <div class="col-md-6 col-lg-5">
+                <div class="card p-4">
+                    <h2 class="card-title text-center mb-4" style="color: var(--er-blue);">Grupo Estrella Roja</h2>
+                    <p class="text-center text-muted">Gestión de Tickets de Combustible</p>
+
+                    <form id="loginForm" class="mb-3">
+                        <h4 class="text-center mb-3" style="color: var(--er-red);">Iniciar Sesión</h4>
+                        <div class="mb-3">
+                            <label for="loginEmail" class="form-label">Correo Electrónico</label>
+                            <input type="email" class="form-control" id="loginEmail" placeholder="ejemplo@estrellaroja.com" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="loginPassword" class="form-label">Contraseña</label>
+                            <input type="password" class="form-control" id="loginPassword" placeholder="********" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary-er w-100 mb-2">Entrar</button>
+                        <button type="button" class="btn btn-link w-100 text-decoration-none" onclick="showRegisterForm()">¿No tienes cuenta? Regístrate</button>
+                        <button type="button" class="btn btn-link w-100 text-decoration-none" onclick="showForgotPasswordForm()">¿Olvidaste tu contraseña?</button>
+                    </form>
+
+                    <form id="registerForm" class="mb-3 d-none">
+                        <h4 class="text-center mb-3" style="color: var(--er-red);">Registrarse</h4>
+                        <div class="mb-3">
+                            <label for="registerEmail" class="form-label">Correo Electrónico</label>
+                            <input type="email" class="form-control" id="registerEmail" placeholder="ejemplo@estrellaroja.com" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="registerPassword" class="form-label">Contraseña</label>
+                            <input type="password" class="form-control" id="registerPassword" placeholder="Mínimo 6 caracteres" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary-er w-100 mb-2">Registrar</button>
+                        <button type="button" class="btn btn-link w-100 text-decoration-none" onclick="showLoginForm()">Volver al Login</button>
+                    </form>
+
+                    <form id="forgotPasswordForm" class="mb-3 d-none">
+                        <h4 class="text-center mb-3" style="color: var(--er-red);">Recuperar Contraseña</h4>
+                        <div class="mb-3">
+                            <label for="forgotEmail" class="form-label">Correo Electrónico</label>
+                            <input type="email" class="form-control" id="forgotEmail" placeholder="ejemplo@estrellaroja.com" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary-er w-100 mb-2">Enviar Enlace de Recuperación</button>
+                        <button type="button" class="btn btn-link w-100 text-decoration-none" onclick="showLoginForm()">Volver al Login</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="appSection" class="d-none">
+        <nav class="navbar navbar-expand-lg">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="#">
+                    <i class="fas fa-bus-alt me-2"></i>Grupo Estrella Roja
+                </a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav ms-auto">
+                        <li class="nav-item me-3">
+                            <span class="nav-link">Usuario: <strong id="currentUserId"></strong></span>
+                        </li>
+                        <li class="nav-item">
+                            <button id="logoutBtn" class="btn btn-outline-light btn-sm">
+                                <i class="fas fa-sign-out-alt me-1"></i>Cerrar Sesión
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+
+        <div class="container mt-4">
+            <div class="row">
+                <div class="col-lg-5 mb-4">
+                    <div class="card p-4">
+                        <h4 class="card-title text-center mb-4" style="color: var(--er-blue);">Crear Nuevo Ticket de Combustible</h4>
+                        <form id="createTicketForm">
+                            <div class="mb-3">
+                                <label for="ticketTitle" class="form-label">Título del Pedido</label>
+                                <input type="text" class="form-control" id="ticketTitle" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="ticketDescription" class="form-label">Descripción del Pedido</label>
+                                <textarea class="form-control" id="ticketDescription" rows="3" required></textarea>
+                            </div>
+                            <div class="mb-3">
+                                <label for="ticketPriority" class="form-label">Prioridad</label>
+                                <select class="form-select" id="ticketPriority" required>
+                                    <option value="">Selecciona una prioridad</option>
+                                    <option value="Alta">Alta</option>
+                                    <option value="Media">Media</option>
+                                    <option value="Baja">Baja</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label for="fuelProvider" class="form-label">Proveedor de Combustible</label>
+                                <select class="form-select" id="fuelProvider" required>
+                                    <option value="">Selecciona un proveedor</option>
+                                    <option value="Redgas">Redgas</option>
+                                    <option value="Pulpo Pay">Pulpo Pay</option>
+                                    <option value="Transfer gas">Transfer gas</option>
+                                    <option value="Eco Gnv">Eco Gnv</option>
+                                    <option value="Control gas">Control gas</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label for="unitNumber" class="form-label">Número económico de la unidad</label>
+                                <input type="text" class="form-control" id="unitNumber" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="fuelLiters" class="form-label">Litros de Combustible</label>
+                                <input type="number" class="form-control" id="fuelLiters" step="1" min="0" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="productType" class="form-label">Tipo de Producto</label>
+                                <select class="form-select" id="productType" required>
+                                    <option value="">Selecciona un tipo de producto</option>
+                                    <option value="Diesel">Diesel</option>
+                                    <option value="Gasolina regular">Gasolina regular</option>
+                                    <option value="Gasolina premium">Gasolina premium</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label for="requestDate" class="form-label">Fecha de Solicitud del Ticket</label>
+                                <input type="date" class="form-control" id="requestDate" readonly required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="loadDate" class="form-label">Fecha para la Carga de Combustible</label>
+                                <input type="date" class="form-control" id="loadDate" required>
+                            </div>
+                            <button type="submit" class="btn btn-primary-er w-100">
+                                <i class="fas fa-plus-circle me-1"></i>Crear Ticket
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="col-lg-7">
+                    <div class="card p-4 mb-4">
+                        <h4 class="card-title text-center mb-4" style="color: var(--er-blue);">Estadísticas de Tickets por Prioridad</h4>
+                        <div class="chart-container">
+                            <canvas id="priorityChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="text-center mb-4">
+                        <button id="exportTicketsBtn" class="btn btn-outline-er">
+                            <i class="fas fa-file-export me-1"></i>Exportar Todos los Tickets a CSV
+                        </button>
+                    </div>
+
+                    <div class="card p-4">
+                        <h4 class="card-title text-center mb-4" style="color: var(--er-blue);">Tickets Activos</h4>
+                        <div id="ticketsList" class="row g-3">
+                            <p class="text-center text-muted" id="noTicketsMessage">No hay tickets activos. ¡Crea uno!</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-labelledby="deleteConfirmModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteConfirmModalLabel">Confirmar Eliminación</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    ¿Estás seguro de que quieres eliminar este ticket? Esta acción no se puede deshacer.
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Eliminar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" xintegrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+
+    <script type="module">
+        // Importar las funciones necesarias de los SDKs de Firebase
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import {
+            getAuth,
+            signInAnonymously,
+            signInWithCustomToken,
+            createUserWithEmailAndPassword,
+            signInWithEmailAndPassword,
+            sendPasswordResetEmail,
+            signOut,
+            onAuthStateChanged
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import {
+            getFirestore,
+            collection,
+            addDoc,
+            getDocs,
+            deleteDoc,
+            doc,
+            query,
+            where,
+            onSnapshot,
+            orderBy
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Variables globales proporcionadas por el entorno de Canvas
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        // Inicializar Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        let userId = null;
+        let ticketsCollectionRef = null;
+        let priorityChartInstance = null; // Instancia de Chart.js
+
+        // Referencias a elementos del DOM
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        const authSection = document.getElementById('authSection');
+        const appSection = document.getElementById('appSection');
+        const loginForm = document.getElementById('loginForm');
+        const registerForm = document.getElementById('registerForm');
+        const forgotPasswordForm = document.getElementById('forgotPasswordForm');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const currentUserIdSpan = document.getElementById('currentUserId');
+        const createTicketForm = document.getElementById('createTicketForm');
+        const ticketsList = document.getElementById('ticketsList');
+        const noTicketsMessage = document.getElementById('noTicketsMessage');
+        const exportTicketsBtn = document.getElementById('exportTicketsBtn');
+        const priorityChartCanvas = document.getElementById('priorityChart').getContext('2d');
+        const alertMessage = document.getElementById('alertMessage');
+        const alertText = document.getElementById('alertText');
+        const deleteConfirmModal = new bootstrap.Modal(document.getElementById('deleteConfirmModal'));
+        const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+        let ticketToDeleteId = null;
+
+        // Referencias a campos específicos del formulario
+        const requestDateInput = document.getElementById('requestDate');
+        const fuelLitersInput = document.getElementById('fuelLiters');
+
+        // --- Funciones de Utilidad de UI ---
+        function showLoading() {
+            loadingOverlay.style.display = 'flex';
+        }
+
+        function hideLoading() {
+            loadingOverlay.style.display = 'none';
+        }
+
+        function showAlert(message, type = 'success') {
+            alertText.textContent = message;
+            alertMessage.className = `alert alert-${type} alert-dismissible fade show alert-message`;
+            alertMessage.style.display = 'block';
+            setTimeout(() => {
+                hideAlert();
+            }, 5000); // Ocultar después de 5 segundos
+        }
+
+        function hideAlert() {
+            alertMessage.style.display = 'none';
+        }
+
+        function showLoginForm() {
+            loginForm.classList.remove('d-none');
+            registerForm.classList.add('d-none');
+            forgotPasswordForm.classList.add('d-none');
+        }
+
+        function showRegisterForm() {
+            loginForm.classList.add('d-none');
+            registerForm.classList.remove('d-none');
+            forgotPasswordForm.classList.add('d-none');
+        }
+
+        function showForgotPasswordForm() {
+            loginForm.classList.add('d-none');
+            registerForm.classList.add('d-none');
+            forgotPasswordForm.classList.remove('d-none');
+        }
+
+        // --- Funciones de Autenticación ---
+        onAuthStateChanged(auth, async (user) => {
+            hideLoading();
+            if (user) {
+                userId = user.uid;
+                currentUserIdSpan.textContent = userId;
+                ticketsCollectionRef = collection(db, `artifacts/${appId}/users/${userId}/fuelTickets`);
+                authSection.classList.add('d-none');
+                appSection.classList.remove('d-none');
+                listenForTickets(); // Iniciar la escucha de tickets en tiempo real
+                // Establecer la fecha de solicitud al día actual al cargar la sección de la app
+                setRequestDateToToday();
+            } else {
+                userId = null;
+                ticketsCollectionRef = null;
+                authSection.classList.remove('d-none');
+                appSection.classList.add('d-none');
+                showLoginForm(); // Asegurarse de mostrar el login si no hay usuario
+                if (priorityChartInstance) {
+                    priorityChartInstance.destroy(); // Destruir el gráfico al cerrar sesión
+                }
+            }
+        });
+
+        // Autenticación inicial al cargar la página
+        async function initialAuth() {
+            showLoading();
+            try {
+                if (initialAuthToken) {
+                    await signInWithCustomToken(auth, initialAuthToken);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            } catch (error) {
+                console.error("Error en la autenticación inicial:", error);
+                showAlert(`Error de autenticación: ${error.message}`, 'danger');
+                hideLoading();
+            }
+        }
+
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            showLoading();
+            const email = loginEmail.value;
+            const password = loginPassword.value;
+            try {
+                await signInWithEmailAndPassword(auth, email, password);
+                showAlert('¡Inicio de sesión exitoso!', 'success');
+            } catch (error) {
+                console.error("Error al iniciar sesión:", error);
+                showAlert(`Error al iniciar sesión: ${error.message}`, 'danger');
+            } finally {
+                hideLoading();
+            }
+        });
+
+        registerForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            showLoading();
+            const email = registerEmail.value;
+            const password = registerPassword.value;
+            try {
+                await createUserWithEmailAndPassword(auth, email, password);
+                showAlert('¡Registro exitoso! Has iniciado sesión.', 'success');
+            } catch (error) {
+                console.error("Error al registrar:", error);
+                showAlert(`Error al registrar: ${error.message}`, 'danger');
+            } finally {
+                hideLoading();
+            }
+        });
+
+        forgotPasswordForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            showLoading();
+            const email = forgotEmail.value;
+            try {
+                // En un entorno real, usarías sendPasswordResetEmail(auth, email);
+                // await sendPasswordResetEmail(auth, email);
+                showAlert(`Si la cuenta existe, se ha enviado un enlace de recuperación a ${email}. (Funcionalidad simulada)`, 'info');
+                showLoginForm(); // Volver al login después de la simulación
+            } catch (error) {
+                console.error("Error al recuperar contraseña:", error);
+                showAlert(`Error al recuperar contraseña: ${error.message}`, 'danger');
+            } finally {
+                hideLoading();
+            }
+        });
+
+        logoutBtn.addEventListener('click', async () => {
+            showLoading();
+            try {
+                await signOut(auth);
+                showAlert('Sesión cerrada correctamente.', 'success');
+            } catch (error) {
+                console.error("Error al cerrar sesión:", error);
+                showAlert(`Error al cerrar sesión: ${error.message}`, 'danger');
+            } finally {
+                hideLoading();
+            }
+        });
+
+        // --- Funciones de Gestión de Tickets ---
+
+        // Función para establecer la fecha de solicitud al día actual
+        function setRequestDateToToday() {
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0'); // Meses son 0-index
+            const day = String(today.getDate()).padStart(2, '0');
+            requestDateInput.value = `${year}-${month}-${day}`;
+        }
+
+        // Generar folio único y consecutivo por proveedor
+        async function generateFolio(provider) {
+            try {
+                // Consulta para obtener todos los tickets del proveedor específico
+                const q = query(ticketsCollectionRef, where('proveedor', '==', provider));
+                const querySnapshot = await getDocs(q);
+
+                let maxNumber = 0;
+                querySnapshot.forEach((doc) => {
+                    const folio = doc.data().folio;
+                    if (folio && folio.startsWith(provider + '-')) {
+                        const numStr = folio.split('-')[1];
+                        const num = parseInt(numStr, 10);
+                        if (!isNaN(num) && num > maxNumber) {
+                            maxNumber = num;
+                        }
+                    }
+                });
+                const nextNumber = maxNumber + 1;
+                // Formatear el número con ceros a la izquierda (ej. 001, 010, 100)
+                const formattedNumber = String(nextNumber).padStart(3, '0');
+                return `${provider}-${formattedNumber}`;
+            } catch (error) {
+                console.error("Error al generar folio:", error);
+                showAlert(`Error al generar folio: ${error.message}`, 'danger');
+                return `${provider}-${Date.now()}`; // Fallback a folio basado en timestamp
+            }
+        }
+
+        createTicketForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            showLoading();
+
+            const ticketTitle = document.getElementById('ticketTitle').value;
+            const ticketDescription = document.getElementById('ticketDescription').value;
+            const ticketPriority = document.getElementById('ticketPriority').value;
+            const fuelProvider = document.getElementById('fuelProvider').value;
+            const unitNumber = document.getElementById('unitNumber').value;
+            // Usar parseInt para asegurar que los litros sean un número entero
+            const fuelLiters = parseInt(document.getElementById('fuelLiters').value, 10);
+            const productType = document.getElementById('productType').value;
+            const requestDate = document.getElementById('requestDate').value; // Ya se establece automáticamente
+            const loadDate = document.getElementById('loadDate').value;
+
+            // Validar que fuelLiters sea un número entero y positivo
+            if (isNaN(fuelLiters) || fuelLiters < 0) {
+                showAlert('Por favor, ingresa un valor válido y entero para los litros de combustible.', 'danger');
+                hideLoading();
+                return;
+            }
+
+            try {
+                const folio = await generateFolio(fuelProvider);
+
+                await addDoc(ticketsCollectionRef, {
+                    titulo: ticketTitle,
+                    descripcion: ticketDescription,
+                    prioridad: ticketPriority,
+                    proveedor: fuelProvider,
+                    numeroUnidad: unitNumber,
+                    litros: fuelLiters,
+                    tipoProducto: productType,
+                    fechaSolicitud: requestDate,
+                    fechaCarga: loadDate,
+                    folio: folio,
+                    timestamp: Date.now() // Para ordenar
+                });
+                createTicketForm.reset();
+                setRequestDateToToday(); // Restablecer la fecha de solicitud después de crear el ticket
+                showAlert('Ticket creado exitosamente!', 'success');
+            } catch (error) {
+                console.error("Error al crear ticket:", error);
+                showAlert(`Error al crear ticket: ${error.message}`, 'danger');
+            } finally {
+                hideLoading();
+            }
+        });
+
+        // Escuchar cambios en la colección de tickets en tiempo real
+        function listenForTickets() {
+            if (!ticketsCollectionRef) {
+                console.warn("ticketsCollectionRef no está inicializado. No se puede escuchar tickets.");
+                return;
+            }
+
+            onSnapshot(ticketsCollectionRef, (snapshot) => {
+                const tickets = [];
+                snapshot.forEach((doc) => {
+                    tickets.push({ id: doc.id, ...doc.data() });
+                });
+                renderTickets(tickets);
+                updatePriorityChart(tickets);
+            }, (error) => {
+                console.error("Error al escuchar tickets:", error);
+                showAlert(`Error al cargar tickets: ${error.message}`, 'danger');
+            });
+        }
+
+        function renderTickets(tickets) {
+            ticketsList.innerHTML = ''; // Limpiar lista existente
+            if (tickets.length === 0) {
+                noTicketsMessage.style.display = 'block';
+                return;
+            } else {
+                noTicketsMessage.style.display = 'none';
+            }
+
+            // Ordenar tickets por timestamp descendente
+            tickets.sort((a, b) => b.timestamp - a.timestamp);
+
+            tickets.forEach(ticket => {
+                const card = document.createElement('div');
+                card.className = 'col-md-6 col-lg-6'; // Columnas responsivas para tarjetas
+                card.innerHTML = `
+                    <div class="card ticket-card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title" style="color: var(--er-blue);">${ticket.titulo}</h5>
+                            <h6 class="card-subtitle mb-2 text-muted">Folio: ${ticket.folio}</h6>
+                            <p class="card-text"><strong>Descripción:</strong> ${ticket.descripcion}</p>
+                            <p class="card-text"><strong>Prioridad:</strong> <span class="badge ${getPriorityBadgeClass(ticket.prioridad)}">${ticket.prioridad}</span></p>
+                            <p class="card-text"><strong>Proveedor:</strong> ${ticket.proveedor}</p>
+                            <p class="card-text"><strong>Unidad:</strong> ${ticket.numeroUnidad}</p>
+                            <p class="card-text"><strong>Litros:</strong> ${ticket.litros} L</p>
+                            <p class="card-text"><strong>Producto:</strong> ${ticket.tipoProducto}</p>
+                            <p class="card-text"><strong>Solicitud:</strong> ${ticket.fechaSolicitud}</p>
+                            <p class="card-text"><strong>Carga:</strong> ${ticket.fechaCarga}</p>
+                            <button type="button" class="btn btn-danger btn-sm mt-3 delete-ticket-btn" data-id="${ticket.id}">
+                                <i class="fas fa-trash-alt me-1"></i>Eliminar
+                            </button>
+                        </div>
+                    </div>
+                `;
+                ticketsList.appendChild(card);
+            });
+
+            // Asignar eventos de eliminación a los nuevos botones
+            document.querySelectorAll('.delete-ticket-btn').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    ticketToDeleteId = e.target.dataset.id;
+                    deleteConfirmModal.show();
+                });
+            });
+        }
+
+        // Clase de badge para la prioridad
+        function getPriorityBadgeClass(priority) {
+            switch (priority) {
+                case 'Alta': return 'bg-danger';
+                case 'Media': return 'bg-warning text-dark';
+                case 'Baja': return 'bg-success';
+                default: return 'bg-secondary';
+            }
+        }
+
+        confirmDeleteBtn.addEventListener('click', async () => {
+            if (ticketToDeleteId) {
+                deleteConfirmModal.hide();
+                showLoading();
+                try {
+                    await deleteDoc(doc(db, `artifacts/${appId}/users/${userId}/fuelTickets`, ticketToDeleteId));
+                    showAlert('Ticket eliminado exitosamente.', 'success');
+                } catch (error) {
+                    console.error("Error al eliminar ticket:", error);
+                    showAlert(`Error al eliminar ticket: ${error.message}`, 'danger');
+                } finally {
+                    hideLoading();
+                    ticketToDeleteId = null;
+                }
+            }
+        });
+
+        // --- Funciones de Exportación de Datos ---
+        exportTicketsBtn.addEventListener('click', async () => {
+            showLoading();
+            try {
+                const querySnapshot = await getDocs(ticketsCollectionRef);
+                const tickets = [];
+                querySnapshot.forEach((doc) => {
+                    tickets.push(doc.data());
+                });
+
+                if (tickets.length === 0) {
+                    showAlert('No hay tickets para exportar.', 'info');
+                    hideLoading();
+                    return;
+                }
+
+                // Definir las cabeceras del CSV
+                const headers = [
+                    "Folio", "Título", "Descripción", "Prioridad", "Proveedor",
+                    "Número de Unidad", "Litros", "Tipo de Producto",
+                    "Fecha de Solicitud", "Fecha de Carga"
+                ];
+
+                // Mapear los datos de los tickets a un formato plano para CSV
+                const rows = tickets.map(ticket => [
+                    ticket.folio || '',
+                    ticket.titulo || '',
+                    ticket.descripcion || '',
+                    ticket.prioridad || '',
+                    ticket.proveedor || '',
+                    ticket.numeroUnidad || '',
+                    ticket.litros || '',
+                    ticket.tipoProducto || '',
+                    ticket.fechaSolicitud || '',
+                    ticket.fechaCarga || ''
+                ]);
+
+                let csvContent = headers.map(h => `"${h}"`).join(',') + '\n'; // Cabeceras
+                rows.forEach(row => {
+                    csvContent += row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',') + '\n'; // Datos, escapando comillas
+                });
+
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                if (link.download !== undefined) { // Feature detection
+                    const url = URL.createObjectURL(blob);
+                    link.setAttribute('href', url);
+                    link.setAttribute('download', 'tickets_combustible_estrella_roja.csv');
+                    link.style.visibility = 'hidden';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    showAlert('Tickets exportados exitosamente a CSV.', 'success');
+                } else {
+                    showAlert('Tu navegador no soporta la descarga directa de archivos.', 'warning');
+                }
+            } catch (error) {
+                console.error("Error al exportar tickets:", error);
+                showAlert(`Error al exportar tickets: ${error.message}`, 'danger');
+            } finally {
+                hideLoading();
+            }
+        });
+
+        // --- Funciones de Gráficos (Chart.js) ---
+        function updatePriorityChart(tickets) {
+            const priorityCounts = { 'Alta': 0, 'Media': 0, 'Baja': 0 };
+
+            tickets.forEach(ticket => {
+                if (priorityCounts.hasOwnProperty(ticket.prioridad)) {
+                    priorityCounts[ticket.prioridad]++;
+                }
+            });
+
+            const labels = ['Alta', 'Media', 'Baja'];
+            const data = [priorityCounts['Alta'], priorityCounts['Media'], priorityCounts['Baja']];
+            const backgroundColors = [
+                'rgba(228, 0, 43, 0.7)',  // Rojo Estrella Roja para Alta
+                'rgba(255, 193, 7, 0.7)', // Amarillo para Media
+                'rgba(40, 167, 69, 0.7)'  // Verde para Baja
+            ];
+            const borderColors = [
+                'rgba(228, 0, 43, 1)',
+                'rgba(255, 193, 7, 1)',
+                'rgba(40, 167, 69, 1)'
+            ];
+
+            if (priorityChartInstance) {
+                priorityChartInstance.data.labels = labels;
+                priorityChartInstance.data.datasets[0].data = data;
+                priorityChartInstance.data.datasets[0].backgroundColor = backgroundColors;
+                priorityChartInstance.data.datasets[0].borderColor = borderColors;
+                priorityChartInstance.update();
+            } else {
+                priorityChartInstance = new Chart(priorityChartCanvas, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Cantidad de Tickets',
+                            data: data,
+                            backgroundColor: backgroundColors,
+                            borderColor: borderColors,
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    precision: 0 // Asegura que los ticks sean enteros
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                display: false // Ocultar la leyenda si solo hay un dataset
+                            },
+                            title: {
+                                display: false,
+                                text: 'Tickets por Prioridad'
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        // Iniciar la autenticación al cargar el script
+        initialAuth();
+    </script>
+</body>
+</html>
